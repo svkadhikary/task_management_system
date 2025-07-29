@@ -218,7 +218,7 @@ glove_twitter_lightweight.model.vectors.npy
 
 
 # datasets unused
-task_logs\synthetic_task_dataset_meaningful.csv
-task_logs\synthetic_task_dataset.csv
+task_logs/synthetic_task_dataset_meaningful.csv
+task_logs/synthetic_task_dataset.csv
 task_assignments.csv
 
