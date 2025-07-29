@@ -64,6 +64,7 @@ db.sqlite3-journal
 # Flask stuff:
 instance/
 .webassets-cache
+due_end_relation.jpg
 
 # Scrapy stuff:
 .scrapy
@@ -77,6 +78,10 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+NLP.ipynb
+Priority_n_Workload.ipynb
+Hours_Estimation.ipynb
+rough.ipynb
 
 # IPython
 profile_default/
@@ -205,3 +210,15 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# unused models
+word2vec.model
+glove_twitter_lightweight.model
+glove_twitter_lightweight.model.vectors.npy
+
+
+# datasets unused
+task_logs\synthetic_task_dataset_meaningful.csv
+task_logs\synthetic_task_dataset.csv
+task_assignments.csv
+
