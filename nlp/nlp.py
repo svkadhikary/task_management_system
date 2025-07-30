@@ -7,6 +7,9 @@ import pickle
 import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+if not spacy.util.is_package('en_core_web_md'):
+    spacy.cli.download('en_core_web_md')
+# Load the medium-sized English model
 spacy_nlp = spacy.load('en_core_web_md')
 
 

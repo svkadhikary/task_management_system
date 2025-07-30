@@ -148,6 +148,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+taskmgr_env/
 
 # Spyder project settings
 .spyderproject
