@@ -218,6 +218,7 @@ with col1:
                         df,
                         st.session_state.selected_task['category'],
                         st.session_state.selected_task['type'],
+                        st.session_state.selected_task['task_id'],
                         [a for a in all_assignees if a != ""] # Pass only actual assignees
                     )
                     # Store the suggested value in session state
