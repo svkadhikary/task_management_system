@@ -1,13 +1,14 @@
 import pandas as pd
 import numpy as np
 import warnings
+from logger_n_exception.logger import logging
 warnings.filterwarnings("ignore")
 
 import pickle
 import spacy
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 if not spacy.util.is_package('en_core_web_md'):
+    logging.info("Downloading the medium-sized English model for spaCy...")
     spacy.cli.download('en_core_web_md')
 # Load the medium-sized English model
 spacy_nlp = spacy.load('en_core_web_md')
@@ -31,15 +32,18 @@ def preprocess_with_spacy(text, return_vector=False):
     return clean_text  # or just text if vectors not needed
 
 def predict_task_category(task_desc):
-        
-    with open('nlp/tfidf_vect.pkl', 'rb') as f:
-        tfidf_vect = pickle.load(f)
+    try:    
+        with open('nlp/tfidf_vect.pkl', 'rb') as f:
+            tfidf_vect = pickle.load(f)
 
-    with open('nlp/lbl_enc_cat.pkl', 'rb') as f:
-        lbl_enc_cat = pickle.load(f)
-    
-    with open('nlp/category_predict.pkl', 'rb') as f:
-        cat_predict = pickle.load(f)
+        with open('nlp/lbl_enc_cat.pkl', 'rb') as f:
+            lbl_enc_cat = pickle.load(f)
+        
+        with open('nlp/category_predict.pkl', 'rb') as f:
+            cat_predict = pickle.load(f)
+    except FileNotFoundError as e:
+        logging.error(f"File not found: {e}")
+        return "Model not found"
     
     task_desc_cleaned = preprocess_with_spacy(task_desc)
     task_desc_vectorized = tfidf_vect.transform([task_desc_cleaned])
@@ -50,15 +54,19 @@ def predict_task_category(task_desc):
 
 
 def predict_task_type(task_desc):
-        
-    with open('nlp/tfidf_vect.pkl', 'rb') as f:
-        tfidf_vect = pickle.load(f)
 
-    with open('nlp/lbl_enc.pkl', 'rb') as f:
-        lbl_enc = pickle.load(f)
-    
-    with open('nlp/type_predict.pkl', 'rb') as f:
-        cat_predict = pickle.load(f)
+    try:    
+        with open('nlp/tfidf_vect.pkl', 'rb') as f:
+            tfidf_vect = pickle.load(f)
+
+        with open('nlp/lbl_enc.pkl', 'rb') as f:
+            lbl_enc = pickle.load(f)
+        
+        with open('nlp/type_predict.pkl', 'rb') as f:
+            cat_predict = pickle.load(f)
+    except FileNotFoundError as e:
+        logging.error(f"File not found: {e}")
+        return "Model not found"
     
     task_desc_cleaned = preprocess_with_spacy(task_desc)
     task_desc_vectorized = tfidf_vect.transform([task_desc_cleaned])
@@ -69,8 +77,13 @@ def predict_task_type(task_desc):
 
 def predict_task_info(task_desc):
     """Predicts both category and type of the task"""
-    category = predict_task_category(task_desc)
-    task_type = predict_task_type(task_desc)
+    try:
+        category = predict_task_category(task_desc)
+        task_type = predict_task_type(task_desc)
+        logging.info(f"Predicted category: {category}, type: {task_type} for task description.")
+    except Exception as e:
+        logging.error(f"Error during task info prediction: {e}")
+        return None, None
     
     return category, task_type
 

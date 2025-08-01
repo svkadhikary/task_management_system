@@ -1,3 +1,4 @@
+from logger_n_exception.logger import logging
 import pandas as pd
 import numpy as np
 
@@ -9,6 +10,7 @@ def suggest_assignee(df, task_category, task_type, task_id, current_assignees_li
     2. Current workload (fewer 'To Do' tasks).
     """
     if not current_assignees_list:
+        logging.warning("No current assignees available for suggestion.")
         return "Unassigned" # No assignees available
 
     if "" in current_assignees_list:
@@ -20,9 +22,9 @@ def suggest_assignee(df, task_category, task_type, task_id, current_assignees_li
     df['expected_days'] = (pd.to_datetime(df['due_date']) - pd.to_datetime(df['created_at'])).dt.days
     df['hours_per_day'] = df['estimated_hours'] / df['expected_days'].replace(0, np.nan) # Avoid division by zero
     assignee_hours_per_day = df[df['status'] == 'To Do'].groupby('assignee')['hours_per_day'].mean().to_dict()
-
-    print("Assignee workload:", assignee_workload)
-    print("Assignee hours per day:", assignee_hours_per_day)
+    
+    logging.info(f"Assignee workload: {assignee_workload}")
+    logging.info(f"Assignee hours per day: {assignee_hours_per_day}")
     
     for assignee in current_assignees_list:
         assignee_workload.setdefault(assignee, 0) # Ensure all current assignees are in the dict, even if they have no tasks
@@ -34,7 +36,7 @@ def suggest_assignee(df, task_category, task_type, task_id, current_assignees_li
     if not relevant_tasks.empty:
         expert_assignees = relevant_tasks['assignee'].dropna().unique().tolist()
     
-    print("Expert assignees found:", expert_assignees)
+    logging.info(f"Expert assignees for category '{task_category}' and type '{task_type}': {expert_assignees}")
     # If no one has completed this specific category/type,
     # fall back to anyone who has completed this category
     if not expert_assignees:
@@ -58,7 +60,7 @@ def suggest_assignee(df, task_category, task_type, task_id, current_assignees_li
                 if workhours_per_day+estimated_hours_per_day < hours_per_day_threshold:
                     min_workload = workload
                     best_assignee = assignee
-        print("Best expert assignee found:", best_assignee)
+        logging.info("Best expert assignee found:", best_assignee)
         return best_assignee
     else:
         # If no expert found, pick the one with the least workload overall
@@ -71,6 +73,6 @@ def suggest_assignee(df, task_category, task_type, task_id, current_assignees_li
                 if workhours_per_day + estimated_hours_per_day < hours_per_day_threshold:
                     min_workload = workload
                     best_assignee = assignee
-        print("Best non-expert assignee found:", best_assignee)
+        logging.info("Best non-expert assignee found:", best_assignee)
         return best_assignee or current_assignees_list[0] # Fallback to first if all workloads are infinite (e.g. empty)
     

@@ -2,21 +2,22 @@ import pandas as pd
 import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
+from logger_n_exception.logger import logging
 
 import pickle
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from xgboost import XGBClassifier
 
 def predict_priority(task_data):
     """Predicts the priority of a task based on its features."""
 
     priorities = {0: "Low", 1: "Medium", 2: "High", 3: "Critical"}
     
-    # Load the pre-trained model and transformers
-    with open('priority_prediction\priority_predictor.pkl', 'rb') as f:
-        xgb_pipe = pickle.load(f)
+    try:
+        # Load the pre-trained model and transformers
+        with open('priority_prediction\priority_predictor.pkl', 'rb') as f:
+            xgb_pipe = pickle.load(f)
+    except FileNotFoundError:
+        logging.error("Priority prediction model file not found. Ensure the model is trained and saved correctly.")
+        return "Model not found"
     
     task_data['created_at'] = pd.to_datetime(task_data['created_at'])
     task_data['due_date'] = pd.to_datetime(task_data['due_date'])
@@ -29,7 +30,12 @@ def predict_priority(task_data):
     required_featuers = xgb_pipe.feature_names_in_.tolist()
     
     # Predict priority
-    priority_prediction = xgb_pipe.predict(task_data[required_featuers])
+    try:
+        priority_prediction = xgb_pipe.predict(task_data[required_featuers])
+        logging.info(f"Predicted priority: {priority_prediction[0]} for task data: {task_data.to_dict()}")
+    except Exception as e:
+        logging.error(f"Error during priority prediction: {e}")
+        return "Prediction error"
 
     return priorities[priority_prediction[0]]
 
