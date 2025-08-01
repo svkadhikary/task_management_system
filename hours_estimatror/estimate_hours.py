@@ -23,5 +23,8 @@ def predict_hours(tasks_desc):
 
     estmated_hours = xgb_r.predict(tasks_desc)
 
-    return np.round((estmated_hours + estimate_input)/2, 1)
+    if estimate_input > 0:
+        return np.round((estmated_hours + estimate_input)/2, 1)
+    return np.round(estmated_hours, 1)
+
 

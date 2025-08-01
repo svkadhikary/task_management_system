@@ -4,11 +4,12 @@ from datetime import datetime
 import streamlit as st
 import pandas as pd
 
+from dataframe_manager.manage_dataframe import DataFrameManager
 from nlp.nlp import predict_task_info
 from priority_prediction.predict_priority import predict_priority
 from hours_estimatror.estimate_hours import predict_hours
 from assigneed_to.suggest_assignee import suggest_assignee
-
+from visualization.visualize import VisualizationManager
 
 if 'view_added' not in st.session_state:
     st.session_state.view_added = ("", "", "")
@@ -16,12 +17,13 @@ if 'view_added' not in st.session_state:
 st.set_page_config(layout="wide")
 
 st.title("Smart Task Management System")
-col_required = ["task_id", "title", "created_at", "due_date", "status", "description", "category", "type", "priority", "estimated_hours", "assignee"]
+cols_required = ["task_id", "title", "created_at", "due_date", "status", "description", "category", "type", "priority", "estimated_hours", "assignee"]
 
-df = pd.read_csv("task_logs/tasks_data.csv", usecols=col_required) if os.path.exists(
-    "task_logs/tasks_data.csv") else pd.DataFrame(
-    columns=col_required
-    )
+# load dataframe
+df_mgr = DataFrameManager()
+df = df_mgr.get_dataframe()
+
+
 for col in ["created_at", "due_date"]:
     df[col] = pd.to_datetime(df[col], errors='coerce')
 
@@ -32,7 +34,7 @@ def view_artifact(cat, type_, priority):
    prediction_placeholder = st.empty()
    with prediction_placeholder.container():
     with st.spinner('Predicting task details...'):
-            time.sleep(2)  # Simulate model processing
+            time.sleep(1)  # Simulate model processing
             st.success("🎯 Auto-predicted Task Details:")
             # Display the predicted task details
             cols = st.columns(3)
@@ -41,7 +43,7 @@ def view_artifact(cat, type_, priority):
             cols[2].metric("Priority", priority)
             
             # Remove after 5 seconds
-    time.sleep(3)  # Display duration
+    time.sleep(2)  # Display duration
     prediction_placeholder.empty()
 
 # Sidebar for task creation
@@ -52,7 +54,7 @@ with st.sidebar:
         created_at = st.date_input("Created At*", value=datetime.today(), disabled=True)
         due_date = st.date_input("Due Date*", min_value=datetime.today())
         description = st.text_area("Description")
-        estimated_hours = st.number_input("Estimated Hours", min_value=0, value=1, step=1)
+        estimated_hours = st.number_input("Estimated Hours", min_value=0, value=1, step=1, help="Average of input and predicted hours will be used")
         submitted = st.form_submit_button("Create Task")
         if submitted:
             if not title and not description:
@@ -63,23 +65,28 @@ with st.sidebar:
                     "title": [title],
                     "created_at": [pd.to_datetime(created_at)],
                     "due_date": [pd.to_datetime(due_date)],
+                    'expected_days': [(pd.to_datetime(due_date) - pd.to_datetime(created_at)).days],
                     "status": ["To Do"],
                     "description": [description],
                     "estimated_hours": [estimated_hours],
                     "assignee": [""]
                 }
+                if new_task['expected_days'][0] <= 0:
+                    st.error("Due date must be after the created date.")
+                elif (new_task['estimated_hours'][0] / new_task['expected_days'][0]) > 8:
+                    st.error("Estimated hours per day exceeds 8 hours. Please adjust the estimated hours or due date.")
+                else:
                 # Predict task category, type, and priority
+                    cat, type_ = predict_task_info(title + ". " + description)
+                    new_task["category"] = cat
+                    new_task["type"] = type_
+                    new_task['estimated_hours'] = predict_hours(pd.DataFrame(new_task))
+                    new_task['priority'] = predict_priority(pd.DataFrame(new_task))
+                    new_task.pop('expected_days', None)
+                    st.session_state.view_added = [cat, type_, new_task['priority']]
+                    df_mgr.update_dataframe(pd.DataFrame(new_task))
 
-                cat, type_ = predict_task_info(title + ". " + description)
-                new_task["category"] = cat
-                new_task["type"] = type_
-                new_task['estimated_hours'] = predict_hours(pd.DataFrame(new_task))
-                new_task['priority'] = predict_priority(pd.DataFrame(new_task))
-                st.session_state.view_added = [cat, type_, new_task['priority']]
-                df = pd.concat([df, pd.DataFrame(new_task)], ignore_index=True)
-                df.to_csv("task_logs/tasks_data.csv", index=False)
-
-                st.success("Task created successfully!")
+                    st.success("Task created successfully!")
 
 
 # Main content area
@@ -105,7 +112,7 @@ with col2:
     all_categories = ["All"] + sorted(df['category'].unique().tolist())
     all_types = ["All"] + sorted(df['type'].unique().tolist())
     all_priorities = ["All"] + sorted(df['priority'].unique().tolist(), key=lambda x: ['High', 'Medium', 'Low'].index(x) if x in ['High', 'Medium', 'Low'] else 99) # Custom sort for priority
-    all_assignees = ["All"] + sorted(df['assignee'].dropna().unique().tolist())
+    all_assignees = ["All", "Unassigned"] + sorted(df['assignee'].dropna().unique().tolist())
 
 
     selected_status = st.selectbox("Status", all_statuses, key="filter_status")
@@ -126,7 +133,10 @@ with col2:
     if selected_priority != "All":
         filtered_df = filtered_df[filtered_df['priority'] == selected_priority]
     if selected_assignee_filter != "All":
-        filtered_df = filtered_df[filtered_df['assignee'] == selected_assignee_filter]
+        if selected_assignee_filter == "Unassigned":
+            filtered_df = filtered_df[filtered_df['assignee'].isnull()]
+        else:
+            filtered_df = filtered_df[filtered_df['assignee'] == selected_assignee_filter]
 
     # You can also add a search box for title/description
     search_query = st.text_input("Search Title/Description", key="filter_search_query")
@@ -137,6 +147,8 @@ with col2:
         ]
 
 displayed_df = filtered_df
+viz_mgr = VisualizationManager(displayed_df)
+
 with col1:
     st.subheader("📋 Task List")
     selected_df = st.dataframe(
@@ -160,8 +172,19 @@ with col1:
         key="task_list_dataframe",
         hide_index=True
     )
-
-
+    st.write("Select a task to view details and perform actions.")
+    # Add a button to visualize tasks
+    # Visualize tasks
+    if st.button("Visualize Tasks", key="visualize_tasks_button"):
+        if not displayed_df.empty:
+            st.pyplot(viz_mgr.plot_tasks())
+    
+    if st.button("Visualize Workload", key="visualize_workload_button"):
+        display_cols = ['category', 'type', 'priority', 'status']
+        if not displayed_df.empty:
+            if selected_assignee_filter != "All":
+                st.pyplot(viz_mgr.plot_workload_per_assignee(display_cols, assignee=selected_assignee_filter))
+    
     # Check if a row was selected
     if selected_df["selection"]["rows"]:
         selected_row_index = selected_df["selection"]["rows"][0]

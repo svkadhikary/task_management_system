@@ -223,3 +223,5 @@ task_logs/synthetic_task_dataset_meaningful.csv
 task_logs/synthetic_task_dataset.csv
 task_assignments.csv
 
+# logs
+datadir/
