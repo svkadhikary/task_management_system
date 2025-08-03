@@ -5,7 +5,9 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-sns.set_theme(style="darkgrid", palette="crest")
+sns.set_theme(style="darkgrid", palette="mako", rc={
+    'axes.facecolor': (0,0,0,0), 'figure.facecolor': (0,0,0,0), 'axes.labelcolor': 'white', 'xtick.color': 'white', 'ytick.color': 'white'
+    })
 
 class VisualizationManager():
     def __init__(self, df):
