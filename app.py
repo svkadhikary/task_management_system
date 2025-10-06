@@ -258,3 +258,4 @@ with col1:
                     st.success(f"Task '{st.session_state.selected_task['title']}' updated successfully!")
                     st.session_state.selected_task = None
                     st.rerun()
+                    st.session_state.show_edit_form = False  # Hide the form after submission

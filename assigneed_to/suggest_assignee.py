@@ -60,7 +60,7 @@ def suggest_assignee(df, task_category, task_type, task_id, current_assignees_li
                 if workhours_per_day+estimated_hours_per_day < hours_per_day_threshold:
                     min_workload = workload
                     best_assignee = assignee
-        logging.info("Best expert assignee found:", best_assignee)
+        logging.info("Best expert assignee found:", best_assignee[0])
         return best_assignee
     else:
         # If no expert found, pick the one with the least workload overall
@@ -73,6 +73,6 @@ def suggest_assignee(df, task_category, task_type, task_id, current_assignees_li
                 if workhours_per_day + estimated_hours_per_day < hours_per_day_threshold:
                     min_workload = workload
                     best_assignee = assignee
-        logging.info("Best non-expert assignee found:", best_assignee)
+        logging.info("Best non-expert assignee found:", best_assignee[0])
         return best_assignee or current_assignees_list[0] # Fallback to first if all workloads are infinite (e.g. empty)
     
